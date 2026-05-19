@@ -1,0 +1,32 @@
+services:
+  qwen-tts:
+    build: .
+    container_name: qwen-tts-gpu
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+      - ./custom_voices:/app/custom_voices
+    environment:
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - MODEL_PATH=/app/models/qwen-tts
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+      #      - HF_HUB_OFFLINE=1
+      #      - TRANSFORMERS_OFFLINE=1
+      - FILE_RETENTION_HOURS=${FILE_RETENTION_HOURS:-24}
+      - MAX_TEXT_LENGTH=${MAX_TEXT_LENGTH:-5000}
+    shm_size: '8gb'
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3.10", "-c", "import requests; requests.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
