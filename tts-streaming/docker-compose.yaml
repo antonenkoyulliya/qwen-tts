@@ -1,0 +1,30 @@
+services:
+  qwen3-tts-streaming:
+    build: .
+    image: qwen3-tts-streaming:latest
+    container_name: qwen3-tts-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - MODEL_PATH=/app/qwen-tts-model
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Optional: persist voice clones
+      - ./voices:/app/voices
+      - ./output:/app/output
+    shm_size: 8gb  # Shared memory for CUDA
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
